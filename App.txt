@@ -1,0 +1,318 @@
+// Multi-work-order storage (localStorage)
+const INDEX_KEY = "bridgetown_workorders_index_v1";
+const WO_PREFIX = "bridgetown_workorder_v1:";
+
+const partsBody = document.getElementById("partsBody");
+const totalValue = document.getElementById("totalValue");
+
+const woName = document.getElementById("woName");
+const woSelect = document.getElementById("woSelect");
+const woMeta = document.getElementById("woMeta");
+
+const newBtn = document.getElementById("newBtn");
+const saveBtn = document.getElementById("saveBtn");
+const loadBtn = document.getElementById("loadBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+const printBtn = document.getElementById("printBtn");
+
+const addRowBtn = document.getElementById("addRowBtn");
+const clearFormBtn = document.getElementById("clearFormBtn");
+
+let currentId = null; // which saved WO is currently loaded/active
+
+// ---------- Helpers ----------
+function nowISO() {
+  return new Date().toISOString();
+}
+
+function makeId() {
+  // short unique-ish id
+  return "WO-" + Math.random().toString(16).slice(2, 8).toUpperCase() + "-" + Date.now().toString(36).toUpperCase();
+}
+
+function money(n) {
+  return `$${Number(n || 0).toFixed(2)}`;
+}
+
+function readIndex() {
+  try {
+    return JSON.parse(localStorage.getItem(INDEX_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function writeIndex(list) {
+  localStorage.setItem(INDEX_KEY, JSON.stringify(list));
+}
+
+function upsertIndexItem(item) {
+  const list = readIndex();
+  const i = list.findIndex(x => x.id === item.id);
+  if (i >= 0) list[i] = item;
+  else list.unshift(item);
+  writeIndex(list);
+}
+
+function removeIndexItem(id) {
+  const list = readIndex().filter(x => x.id !== id);
+  writeIndex(list);
+}
+
+function refreshDropdown(selectedId = currentId) {
+  const list = readIndex();
+
+  woSelect.innerHTML = `<option value="">-- Select to load --</option>`;
+  for (const item of list) {
+    const opt = document.createElement("option");
+    opt.value = item.id;
+    opt.textContent = `${item.name || "(Unnamed)"}  •  ${item.id}`;
+    woSelect.appendChild(opt);
+  }
+  woSelect.value = selectedId || "";
+}
+
+function setMeta(text) {
+  woMeta.textContent = text || "";
+}
+
+// ---------- Parts Table (two halves) ----------
+function makeRow(data = {}) {
+  const tr = document.createElement("tr");
+
+  // Left
+  tr.appendChild(cellQty(data.lQty));
+  tr.appendChild(cellText(data.lPart, "Part # / description"));
+  tr.appendChild(cellText(data.lCat, "Category"));
+
+  // Divider column
+  const tdDiv = document.createElement("td");
+  tdDiv.className = "divider";
+  tr.appendChild(tdDiv);
+
+  // Right
+  tr.appendChild(cellQty(data.rQty));
+  tr.appendChild(cellText(data.rPart, "Part # / description"));
+  tr.appendChild(cellText(data.rCat, "Category"));
+
+  return tr;
+}
+
+function cellQty(value) {
+  const td = document.createElement("td");
+  const input = document.createElement("input");
+  input.type = "number";
+  input.inputMode = "numeric";
+  input.min = "0";
+  input.placeholder = "0";
+  input.className = "cell-input";
+  input.value = value ?? "";
+  input.addEventListener("input", updateTotal);
+  td.appendChild(input);
+  return td;
+}
+
+function cellText(value, placeholder) {
+  const td = document.createElement("td");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = placeholder;
+  input.className = "cell-input";
+  input.value = value ?? "";
+  td.appendChild(input);
+  return td;
+}
+
+function setPartsData(rows = []) {
+  partsBody.innerHTML = "";
+  if (!rows.length) {
+    // default 6 rows like screenshot
+    for (let i = 0; i < 6; i++) partsBody.appendChild(makeRow());
+    updateTotal();
+    return;
+  }
+  for (const r of rows) partsBody.appendChild(makeRow(r));
+  updateTotal();
+}
+
+function getPartsData() {
+  const trs = [...partsBody.querySelectorAll("tr")];
+  return trs.map(tr => {
+    const inputs = tr.querySelectorAll("input");
+    // order: lQty, lPart, lCat, rQty, rPart, rCat
+    return {
+      lQty: inputs[0].value,
+      lPart: inputs[1].value,
+      lCat: inputs[2].value,
+      rQty: inputs[3].value,
+      rPart: inputs[4].value,
+      rCat: inputs[5].value,
+    };
+  });
+}
+
+function updateTotal() {
+  // Your screenshot shows $0.00 and there are no price fields, so keep total as $0.00.
+  totalValue.textContent = money(0);
+}
+
+// ---------- Form data ----------
+function getFormData() {
+  return {
+    id: currentId,
+    name: woName.value.trim(),
+    updatedAt: nowISO(),
+
+    customer: document.getElementById("customer").value,
+    date: document.getElementById("date").value,
+    ymm: document.getElementById("ymm").value,
+    unitNo: document.getElementById("unitNo").value,
+    po: document.getElementById("po").value,
+    vin: document.getElementById("vin").value,
+    mechanic: document.getElementById("mechanic").value,
+    mileage: document.getElementById("mileage").value,
+    workPerformed: document.getElementById("workPerformed").value,
+    notes: document.getElementById("notes").value,
+
+    partsRows: getPartsData()
+  };
+}
+
+function setFormData(data = {}) {
+  currentId = data.id || null;
+  woName.value = data.name || "";
+
+  document.getElementById("customer").value = data.customer || "";
+  document.getElementById("date").value = data.date || "";
+  document.getElementById("ymm").value = data.ymm || "";
+  document.getElementById("unitNo").value = data.unitNo || "";
+  document.getElementById("po").value = data.po || "";
+  document.getElementById("vin").value = data.vin || "";
+  document.getElementById("mechanic").value = data.mechanic || "";
+  document.getElementById("mileage").value = data.mileage || "";
+  document.getElementById("workPerformed").value = data.workPerformed || "";
+  document.getElementById("notes").value = data.notes || "";
+
+  setPartsData(data.partsRows || []);
+  refreshDropdown(currentId);
+
+  if (currentId) {
+    setMeta(`Loaded: ${currentId} • Last saved: ${data.updatedAt ? new Date(data.updatedAt).toLocaleString() : "—"}`);
+  } else {
+    setMeta("New work order (not saved yet).");
+  }
+}
+
+// ---------- Save / Load / Delete ----------
+function saveCurrent() {
+  const name = woName.value.trim();
+  if (!name) {
+    alert("Please enter a Work Order Name before saving (so you can find it later).");
+    woName.focus();
+    return;
+  }
+
+  if (!currentId) currentId = makeId();
+
+  const payload = getFormData();
+  payload.id = currentId;
+
+  localStorage.setItem(WO_PREFIX + currentId, JSON.stringify(payload));
+
+  upsertIndexItem({
+    id: currentId,
+    name: payload.name,
+    updatedAt: payload.updatedAt
+  });
+
+  refreshDropdown(currentId);
+  setMeta(`Saved: ${currentId} • ${new Date(payload.updatedAt).toLocaleString()}`);
+  alert("Saved.");
+}
+
+function loadById(id) {
+  if (!id) return alert("Select a work order to load.");
+
+  const raw = localStorage.getItem(WO_PREFIX + id);
+  if (!raw) return alert("That saved work order could not be found.");
+
+  try {
+    const data = JSON.parse(raw);
+    setFormData(data);
+    alert("Loaded.");
+  } catch {
+    alert("Saved data was corrupted.");
+  }
+}
+
+function deleteById(id) {
+  if (!id) return alert("Select a work order to delete.");
+
+  const list = readIndex();
+  const item = list.find(x => x.id === id);
+  const label = item ? `${item.name} (${item.id})` : id;
+
+  if (!confirm(`Delete this work order?\n\n${label}\n\nThis cannot be undone.`)) return;
+
+  localStorage.removeItem(WO_PREFIX + id);
+  removeIndexItem(id);
+
+  // If deleting current, reset
+  if (currentId === id) {
+    newWorkOrder();
+  } else {
+    refreshDropdown(currentId);
+  }
+
+  alert("Deleted.");
+}
+
+function newWorkOrder() {
+  const today = new Date();
+  setFormData({
+    id: null,
+    name: "",
+    date: today.toISOString().slice(0, 10),
+    partsRows: []
+  });
+}
+
+// ---------- Events ----------
+newBtn.addEventListener("click", () => {
+  if (!confirm("Start a NEW work order? (Unsaved changes will be lost unless you Save first.)")) return;
+  newWorkOrder();
+});
+
+saveBtn.addEventListener("click", saveCurrent);
+
+loadBtn.addEventListener("click", () => loadById(woSelect.value));
+
+woSelect.addEventListener("change", () => {
+  // quick load when selected
+  if (woSelect.value) loadById(woSelect.value);
+});
+
+deleteBtn.addEventListener("click", () => deleteById(woSelect.value || currentId));
+
+printBtn.addEventListener("click", () => window.print());
+
+addRowBtn.addEventListener("click", () => {
+  partsBody.appendChild(makeRow());
+});
+
+clearFormBtn.addEventListener("click", () => {
+  if (!confirm("Clear the form fields? (This does not delete saved work orders.)")) return;
+  const keepName = woName.value;
+  const keepId = currentId;
+  newWorkOrder();
+  woName.value = keepName;
+  currentId = keepId;
+  refreshDropdown(currentId);
+  setMeta(keepId ? `Cleared form (current: ${keepId}). Remember to Save.` : "Cleared form. Remember to Save.");
+});
+
+// ---------- Init ----------
+(function init(){
+  refreshDropdown();
+  newWorkOrder();
+})();

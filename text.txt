@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Work Order - Bridgetown Industries</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="sheet" aria-label="Work Order">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">B</div>
+          <div class="brand-name">BRIDGETOWN INDUSTRIES</div>
+        </div>
+        <div class="title">WORK ORDER</div>
+      </header>
+
+      <!-- Multi-work-order controls -->
+      <section class="wo-controls" aria-label="Work order controls">
+        <div class="wo-row">
+          <div class="field compact">
+            <label>Work Order Name</label>
+            <input id="woName" type="text" placeholder="e.g., Smith - F150 - 01/09" />
+          </div>
+
+          <div class="field compact">
+            <label>Saved Work Orders</label>
+            <select id="woSelect">
+              <option value="">-- Select to load --</option>
+            </select>
+          </div>
+
+          <div class="wo-buttons">
+            <button class="btn btn-primary" id="newBtn" type="button">New</button>
+            <button class="btn" id="saveBtn" type="button">Save</button>
+            <button class="btn" id="loadBtn" type="button">Load</button>
+            <button class="btn btn-danger" id="deleteBtn" type="button">Delete</button>
+            <button class="btn" id="printBtn" type="button">Print</button>
+          </div>
+        </div>
+
+        <div class="wo-meta" id="woMeta"></div>
+      </section>
+
+      <!-- Header fields (same as screenshot layout) -->
+      <section class="grid" aria-label="Header Fields">
+        <div class="field">
+          <label>Customer</label>
+          <input id="customer" type="text" placeholder="Customer name" />
+        </div>
+
+        <div class="field">
+          <label>Date</label>
+          <input id="date" type="date" />
+        </div>
+
+        <div class="field">
+          <label>Year, Make, Model</label>
+          <input id="ymm" type="text" placeholder="e.g., 2020 Ford F-150" />
+        </div>
+
+        <div class="field">
+          <label>Unit No.</label>
+          <input id="unitNo" type="text" placeholder="Unit #" />
+        </div>
+
+        <div class="field">
+          <label>PO</label>
+          <input id="po" type="text" placeholder="PO #" />
+        </div>
+
+        <div class="field">
+          <label>VIN</label>
+          <input id="vin" type="text" placeholder="VIN" />
+        </div>
+
+        <div class="field">
+          <label>Mechanic</label>
+          <input id="mechanic" type="text" placeholder="Mechanic name" />
+        </div>
+
+        <div class="field">
+          <label>Mileage</label>
+          <input id="mileage" type="number" inputmode="numeric" placeholder="Mileage" />
+        </div>
+      </section>
+
+      <!-- Parts (two side-by-side like your screenshot; NO tap-to-scan) -->
+      <section class="parts" aria-label="Parts">
+        <div class="section-title">PARTS</div>
+
+        <div class="table-wrap">
+          <table class="parts-table" id="partsTable">
+            <thead>
+              <tr>
+                <th class="col-qty">QTY</th>
+                <th>PART NO. &amp; DESCRIPTION</th>
+                <th class="col-cat">CATEGORY</th>
+
+                <th class="divider"></th>
+
+                <th class="col-qty">QTY</th>
+                <th>PART NO. &amp; DESCRIPTION</th>
+                <th class="col-cat">CATEGORY</th>
+              </tr>
+            </thead>
+            <tbody id="partsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="addRowBtn" type="button">+ Add Parts Row</button>
+          <button class="btn" id="clearFormBtn" type="button">Clear Form</button>
+        </div>
+      </section>
+
+      <!-- Description of work -->
+      <section class="work" aria-label="Description of Work">
+        <div class="section-title">DESCRIPTION OF WORK</div>
+
+        <div class="field field-full">
+          <label>Work Performed</label>
+          <textarea id="workPerformed" rows="5" placeholder="A) ...&#10;B) ..."></textarea>
+        </div>
+
+        <div class="work-bottom">
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="notes" rows="5" placeholder="Notes..."></textarea>
+          </div>
+
+          <div class="total-box" aria-label="Total">
+            <div class="total-label">Total</div>
+            <div class="total-value" id="totalValue">$0.00</div>
+          </div>
+        </div>
+      </section>
+
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
